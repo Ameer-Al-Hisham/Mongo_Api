@@ -20,7 +20,7 @@ CORS(app)
 
 @app.route("/")
 def home():
-    return "Hello world"
+    return "Hello world Running"
 
 
 @app.route("/viewall", methods=["GET"])
