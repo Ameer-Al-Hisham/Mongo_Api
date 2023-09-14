@@ -61,7 +61,58 @@ def getalltask():
   for doc in data:
     finlist.append(doc)
   return jsonify(finlist)
-  
+
+
+
+
+
+
+@app.route("/gettaskuid",methods = ["GET"])
+def gettaskuid():
+  out = []
+  uid = request.args.get("uid")
+  data = collection1.find_one({"Uid":uid},{"availed_tasks":1,"_id":0})
+  for i in data["availed_tasks"]:
+    if i["status"] == "success":
+      out.append(i)
+  return jsonify(out)
+
+@app.route("/getevaldetails",methods = ["GET"])
+def getevaldetails():
+  taskid = request.args.get("taskid")
+  uid = request.args.get("uid")
+  print(taskid,uid)
+  # Define the filter criteria
+  filter_criteria = {
+    "Uid": uid,
+    "availed_tasks": {
+        "$elemMatch": {
+            "task_id": taskid
+        }
+    }
+}
+  projection = {
+    "_id": 0,  
+    "availed_tasks.$": 1
+}
+  data = []
+  cursor = collection1.find(filter_criteria, projection)
+  for doc in cursor:
+    availed_tasks = doc.get("availed_tasks", [])
+    for task in availed_tasks:
+      if task.get("task_id") == taskid:
+        data.append(task["evaluation"])
+  if len(data)==1:
+    return jsonify(data[0])
+  else:
+    return "internal error"
+
+@app.route("/gettaskdetails",methods = ["GET"])
+def gettaskdetails():
+  task_id = request.args.get("taskid")
+  data = collection2.find_one({"Tid":task_id},{"_id":0})
+  return jsonify(data)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
