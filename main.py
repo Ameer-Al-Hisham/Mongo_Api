@@ -84,6 +84,18 @@ def getoneavailed():
     out.append(i["Task_ID"])
   return jsonify(out)
 
+@app.route("/getstatus", methods=["GET"])
+def getstatus():
+  uid = request.args.get('uid')
+  tid = request.args.get('tid')
+  data = collection1.find_one({"Uid": uid}, {"Availed_tasks": 1, "_id": 0})
+  for i in data["Availed_tasks"]:
+    if i["Task_ID"] == tid and i["Status"] == "Success":
+      return jsonify('Success')
+    elif i["Task_ID"] == tid and i["Status"] == "Failed":
+      return jsonify('Failed')
+    elif i["Task_ID"] == tid and i["Status"] == "Ongoing":
+      return jsonify('Ongoing')
 
 @app.route("/gettaskuid", methods=["GET"])
 def gettaskuid():
