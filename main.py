@@ -84,18 +84,6 @@ def getoneavailed():
     out.append(i["Task_ID"])
   return jsonify(out)
 
-@app.route("/getstatus", methods=["GET"])
-def getstatus():
-  uid = request.args.get('uid')
-  tid = request.args.get('tid')
-  data = collection1.find_one({"Uid": uid}, {"Availed_tasks": 1, "_id": 0})
-  for i in data["Availed_tasks"]:
-    if i["Task_ID"] == tid and i["Status"] == "Success":
-      return jsonify('Success')
-    elif i["Task_ID"] == tid and i["Status"] == "Failed":
-      return jsonify('Failed')
-    elif i["Task_ID"] == tid and i["Status"] == "Ongoing":
-      return jsonify('Ongoing')
 
 @app.route("/gettaskuid", methods=["GET"])
 def gettaskuid():
@@ -104,7 +92,7 @@ def gettaskuid():
   data = collection1.find_one({"Uid": uid}, {"Availed_tasks": 1, "_id": 0})
   for i in data["Availed_tasks"]:
     if i["Status"] == "Success":
-      out.append(i)
+      out.append(i["Task_ID"])
   return jsonify(out)
 
 
@@ -112,29 +100,13 @@ def gettaskuid():
 def getevaldetails():
   taskid = request.args.get("taskid")
   uid = request.args.get("uid")
+  out =[]
   print(taskid, uid)
-  # Define the filter criteria
-  filter_criteria = {
-    "Uid": uid,
-    "availed_tasks": {
-      "$elemMatch": {
-        "task_id": taskid
-      }
-    }
-  }
-  projection = {"_id": 0, "availed_tasks.$": 1}
-  data = []
-  cursor = collection1.find(filter_criteria, projection)
-  for doc in cursor:
-    availed_tasks = doc.get("availed_tasks", [])
-    for task in availed_tasks:
-      if task.get("task_id") == taskid:
-        data.append(task["evaluation"])
-  if len(data) == 1:
-    return jsonify(data[0])
-  else:
-    return "internal error"
-
+  uidget = collection1.find_one({"Uid": uid}, {"_id": 0, "Availed_tasks": 1})
+  for i in uidget["Availed_tasks"]:
+    if i["Task_ID"] == taskid:
+      out.append(i["Evaluation"])
+  return jsonify(out[0])
 
 @app.route("/gettaskdetails", methods=["GET"])
 def gettaskdetails():
@@ -149,8 +121,45 @@ def getprofilelink():
   data = collection1.find_one({"Uid": uid}, {"_id": 0, "Profile_image": 1})
   return jsonify(data["Profile_image"])
 
-  collection1.insert_one(data)
-  return "Success"
+@app.route("/getstatus", methods=["GET"])
+def getstatus():
+  uid = request.args.get('uid')
+  tid = request.args.get('tid')
+  data = collection1.find_one({"Uid": uid}, {"Availed_tasks": 1, "_id": 0})
+  flag = 0
+  for i in data["Availed_tasks"]:
+    if i["Task_ID"] == tid and i["Status"] == "Success":
+      flag = 1
+      return jsonify('Success')
+    elif i["Task_ID"] == tid and i["Status"] == "Failed":
+      flag = 1
+      return jsonify('Failed')
+    elif i["Task_ID"] == tid and i["Status"] == "Ongoing":
+      flag = 1
+      return jsonify('Submit')
+  if flag == 0:
+    return jsonify("Register")
+
+
+@app.route("/getUID", methods=["GET"])
+def getUID():
+  fuid = request.args.get('fuid')
+  data = collection1.find_one({"Fireid": fuid}, {"Uid": 1, "_id": 0})
+  return jsonify(data["Uid"])
+
+@app.route("/registeratask", methods=["GET"])
+def registeratask():
+  uid = request.args.get('uid')
+  tid = request.args.get('tid')
+  data = {
+    "Task_ID":tid,
+    "Status" : "Ongoing"
+  }
+  collection1.update_one(
+    {"Uid": uid},
+    {"$push": {"Availed_tasks": data}}
+)
+  return jsonify("Success")
 
 
 if __name__ == "__main__":
